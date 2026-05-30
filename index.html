@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0f1e"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="ICFES Quiz"/>
+<meta name="description" content="Plataforma colaborativa de estudio para el ICFES"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<title>ICFES Quiz — Estudio Colaborativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Unbounded:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+
+<!-- Firebase (solo Firestore, sin Storage) -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  // ══════════════════════════════════════════
+  // 🔥 REEMPLAZA CON TU CONFIG DE FIREBASE
+  // ══════════════════════════════════════════
+  const firebaseConfig = {
+    apikey: "AIzaSyAAPOUz0QgEegfM5FoG40bg5_8Yi_TF78k"
+    authDomain: "icfes2026-b4e0a.firebaseapp.com"
+    projectId: "icfes2026-b4e0a",
+    storageBucket: "icfes2026-b4e0a. firebasestorage.app",
+    messagingSenderId: "649846686972",
+    appId: "1:649846686972: web: 7e2bbf1408f395bd3cc379",
+    measurementId: "G-OCGHQMY37C"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._db = db;
+  window._fbModules = { collection, addDoc, getDocs, query, orderBy, where, serverTimestamp };
+  window._firebaseReady = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f1e;--bg2:#0f1729;--surface:#131d35;--surface2:#1a2540;--surface3:#1f2d4a;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e8eaf6;--text2:#8892b0;--text3:#4a5568;
+  --lc:#00d4aa;--mat:#4d9fff;--soc:#ff7b54;--cn:#a855f7;--ing:#f59e0b;
+  --green:#22d6a0;--green-bg:rgba(34,214,160,0.1);
+  --red:#ff5e7a;--red-bg:rgba(255,94,122,0.1);
+  --orange:#f59e0b;--orange-bg:rgba(245,158,11,0.1);
+  --radius:16px;--radius-sm:10px;
+  --font-display:'Unbounded',sans-serif;--font-body:'Plus Jakarta Sans',sans-serif;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  /* Mode colors */
+  --mode-learn:#4d9fff;--mode-learn-bg:rgba(77,159,255,0.12);
+  --mode-memo:#a855f7;--mode-memo-bg:rgba(168,85,247,0.12);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;line-height:1.6;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 60% 40% at 20% 10%,rgba(77,159,255,0.07) 0%,transparent 70%),
+             radial-gradient(ellipse 50% 35% at 80% 80%,rgba(168,85,247,0.07) 0%,transparent 70%)}
+#app{position:relative;z-index:1;max-width:700px;margin:0 auto;padding:calc(var(--safe-top) + 20px) 18px calc(var(--safe-bottom) + 80px);min-height:100vh}
+.screen{display:none}.screen.active{display:block;animation:fadeUp 0.28s cubic-bezier(0.4,0,0.2,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;font-family:var(--font-body);cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text);transition:all 0.18s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.btn:hover{background:var(--surface2)}.btn:active{transform:scale(0.96)}
+.btn svg{width:16px;height:16px;flex-shrink:0}
+.btn-primary{background:linear-gradient(135deg,#3b6fd4,#4d9fff);border-color:rgba(77,159,255,0.4);color:#fff}
+.btn-primary:hover{background:linear-gradient(135deg,#2d5ab8,#3b84e8)}
+.btn-success{background:var(--green-bg);border-color:rgba(34,214,160,0.3);color:var(--green)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--text2);padding:10px 12px}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-full{width:100%}
+.btn-learn{background:var(--mode-learn-bg);border-color:rgba(77,159,255,0.3);color:var(--mode-learn)}
+.btn-learn:hover{background:rgba(77,159,255,0.2)}
+.btn-memo{background:var(--mode-memo-bg);border-color:rgba(168,85,247,0.3);color:var(--mode-memo)}
+.btn-memo:hover{background:rgba(168,85,247,0.2)}
+
+/* Layout */
+.nav-row{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.nav-title{font-family:var(--font-display);font-size:15px;font-weight:700;flex:1;letter-spacing:-0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-header{margin-bottom:28px}
+.logo{display:flex;align-items:center;gap:12px;font-family:var(--font-display);font-size:18px;font-weight:900;letter-spacing:-0.04em;margin-bottom:4px}
+.logo-mark{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#3b6fd4,#00d4aa);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.logo-sub{font-size:12px;color:var(--text2);margin-left:50px}
+
+/* Stats */
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.stat-pill{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 10px;text-align:center}
+.stat-val{font-family:var(--font-display);font-size:20px;font-weight:700}
+.stat-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-top:2px}
+
+/* Component cards */
+.components-grid{display:grid;gap:10px}
+.comp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:14px;-webkit-tap-highlight-color:transparent}
+.comp-card:hover{background:var(--surface2);border-color:var(--border2);transform:translateY(-1px)}
+.comp-card:active{transform:scale(0.98)}
+.comp-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.comp-name{font-weight:600;font-size:14px;margin-bottom:2px}
+.comp-meta{font-size:12px;color:var(--text2)}
+.comp-count{font-family:var(--font-display);font-size:18px;font-weight:700;min-width:36px;text-align:right}
+
+/* Upload */
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:36px 20px 32px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface);-webkit-tap-highlight-color:transparent}
+.upload-zone:hover,.upload-zone.drag{border-color:#4d9fff;background:rgba(77,159,255,0.05)}
+#file-input{display:none}
+.upload-icon{font-size:36px;margin-bottom:14px}
+.upload-title{font-family:var(--font-display);font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em}
+.upload-sub{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5}
+
+/* Preview */
+.preview-section{margin-top:18px}
+.preview-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.preview-label{font-size:12px;font-weight:500;color:var(--text2)}
+.preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.preview-item{position:relative;aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border)}
+.preview-item img{width:100%;height:100%;object-fit:cover}
+.preview-remove{position:absolute;top:4px;right:4px;background:rgba(10,15,30,0.75);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+
+/* Loading */
+.loading-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:44px 24px;text-align:center;margin-top:16px}
+.spinner{width:44px;height:44px;border:2.5px solid var(--border2);border-top-color:#4d9fff;border-radius:50%;animation:spin 0.85s linear infinite;margin:0 auto 18px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-title{font-family:var(--font-display);font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:-0.02em}
+.loading-sub{font-size:13px;color:var(--text2)}
+.loading-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-top:16px}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,#3b6fd4,#00d4aa);border-radius:2px;transition:width 0.4s ease}
+.loading-prog{display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:12px;margin-bottom:4px}
+
+/* Comp selector */
+.comp-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.comp-sel-btn{padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;text-align:center;font-family:var(--font-body)}
+.comp-sel-btn.selected{color:#fff;border-color:transparent}
+.comp-sel-btn:active{transform:scale(0.97)}
+
+/* Question list */
+.q-list-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;background:var(--surface);cursor:pointer;transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+.q-list-item:hover{background:var(--surface2);border-color:var(--border2)}
+.q-thumb{width:54px;height:54px;border-radius:8px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;background:var(--surface2)}
+.q-info{flex:1;min-width:0}
+.q-text{font-size:13px;color:var(--text);line-height:1.4;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.q-meta{font-size:11px;color:var(--text3)}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase}
+.badge-memo{background:var(--mode-memo-bg);color:var(--mode-memo);border:1px solid rgba(168,85,247,0.3)}
+
+/* Progress */
+.progress-wrap{height:4px;background:var(--surface2);border-radius:2px;margin-bottom:24px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#3b6fd4,#00d4aa);transition:width 0.4s cubic-bezier(0.4,0,0.2,1)}
+.progress-fill.memo-fill{background:linear-gradient(90deg,#6b21a8,#a855f7)}
+
+/* Quiz */
+.question-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.question-num{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px}
+.question-img{width:100%;max-height:250px;object-fit:contain;border-radius:var(--radius-sm);margin-bottom:14px;border:1px solid var(--border);background:var(--bg)}
+.question-text{font-size:16px;color:var(--text);line-height:1.65;margin-bottom:18px}
+.options-grid{display:grid;gap:8px}
+.option-btn{width:100%;text-align:left;padding:13px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:12px;-webkit-tap-highlight-color:transparent}
+.option-btn:hover:not(:disabled){border-color:#4d9fff;background:rgba(77,159,255,0.08)}
+.option-letter{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;min-width:28px;border-radius:50%;background:var(--surface3);font-size:11px;font-weight:700;color:var(--text2);border:1px solid var(--border2);flex-shrink:0;transition:all 0.15s}
+.option-btn:hover:not(:disabled) .option-letter{background:#4d9fff;color:#fff;border-color:#4d9fff}
+.option-btn.correct{background:var(--green-bg);border-color:rgba(34,214,160,0.35)}
+.option-btn.correct .option-letter{background:var(--green);color:#0a0f1e;border-color:var(--green)}
+.option-btn.wrong{background:var(--red-bg);border-color:rgba(255,94,122,0.35)}
+.option-btn.wrong .option-letter{background:var(--red);color:#fff;border-color:var(--red)}
+.option-btn.reveal{background:rgba(34,214,160,0.05);border-color:rgba(34,214,160,0.2)}
+.option-btn.reveal .option-letter{background:var(--green);color:#0a0f1e;border-color:var(--green)}
+.option-btn:disabled{cursor:default}
+.feedback-box{margin-top:12px;padding:13px 16px;border-radius:var(--radius-sm);font-size:13px;line-height:1.55;display:none}
+.feedback-box.show{display:block}
+.feedback-box.correct{background:var(--green-bg);color:#4dffd4;border:1px solid rgba(34,214,160,0.2)}
+.feedback-box.wrong{background:var(--red-bg);color:#ffb3bf;border:1px solid rgba(255,94,122,0.2)}
+.quiz-nav{display:flex;gap:10px;align-items:center;margin-top:14px}
+
+/* ── MODO MEMORIZACIÓN — Flashcard ── */
+.flashcard-wrap{perspective:1000px;margin-bottom:20px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.flashcard{width:100%;min-height:260px;position:relative;transform-style:preserve-3d;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1)}
+.flashcard.flipped{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--radius);padding:28px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1px solid var(--border)}
+.card-front{background:var(--surface);position:relative}
+.card-back{background:linear-gradient(135deg,rgba(168,85,247,0.08),rgba(77,159,255,0.06));transform:rotateY(180deg);border-color:rgba(168,85,247,0.25);position:relative}
+.card-hint{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:14px;font-weight:600}
+.card-question-text{font-size:16px;line-height:1.6;color:var(--text)}
+.card-answer-label{font-size:11px;color:var(--mode-memo);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:10px}
+.card-answer-text{font-size:15px;line-height:1.55;color:var(--text);font-weight:600}
+.card-img-small{width:100%;max-height:120px;object-fit:contain;border-radius:8px;margin-bottom:14px;border:1px solid var(--border)}
+.card-explanation{font-size:12px;color:var(--text2);margin-top:12px;padding-top:12px;border-top:1px solid var(--border);line-height:1.5;text-align:left}
+.flip-hint{display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;color:var(--text3);margin-bottom:14px}
+.flip-icon{font-size:16px}
+
+.memo-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.memo-btn{padding:12px 8px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer;border:1px solid transparent;font-family:var(--font-body);transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:4px;-webkit-tap-highlight-color:transparent}
+.memo-btn:active{transform:scale(0.95)}
+.memo-btn span{font-size:18px}
+.memo-btn-again{background:var(--red-bg);border-color:rgba(255,94,122,0.3);color:var(--red)}
+.memo-btn-hard{background:var(--orange-bg);border-color:rgba(245,158,11,0.3);color:var(--orange)}
+.memo-btn-easy{background:var(--green-bg);border-color:rgba(34,214,160,0.3);color:var(--green)}
+.memo-btn-again:hover{background:rgba(255,94,122,0.2)}
+.memo-btn-hard:hover{background:rgba(245,158,11,0.2)}
+.memo-btn-easy:hover{background:rgba(34,214,160,0.2)}
+.memo-actions-hidden{visibility:hidden;pointer-events:none}
+
+.memo-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px}
+.memo-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;text-align:center}
+.memo-stat-val{font-family:var(--font-display);font-size:16px;font-weight:700}
+.memo-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em}
+
+/* Mode selector on comp screen */
+.mode-selector{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.mode-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 16px;cursor:pointer;transition:all 0.2s;-webkit-tap-highlight-color:transparent;text-align:center}
+.mode-card:hover{transform:translateY(-2px)}
+.mode-card:active{transform:scale(0.97)}
+.mode-card-icon{font-size:28px;margin-bottom:8px}
+.mode-card-name{font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:-0.01em;margin-bottom:4px}
+.mode-card-desc{font-size:11px;color:var(--text2);line-height:1.4}
+.mode-card.learn{border-color:rgba(77,159,255,0.25);background:var(--mode-learn-bg)}
+.mode-card.memo{border-color:rgba(168,85,247,0.25);background:var(--mode-memo-bg)}
+
+/* Results */
+.results-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 24px}
+.res-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center}
+.res-val{font-family:var(--font-display);font-size:26px;font-weight:900}
+.res-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-top:3px}
+.result-item{padding:13px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px;background:var(--surface)}
+.result-row{display:flex;align-items:flex-start;gap:10px}
+.result-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.result-detail{font-size:12px;color:var(--text3);margin-top:5px;padding-left:18px}
+
+/* Memo session complete */
+.memo-complete{text-align:center;padding:32px 20px}
+.memo-complete-icon{font-size:52px;margin-bottom:16px}
+.memo-complete-title{font-family:var(--font-display);font-size:18px;font-weight:900;letter-spacing:-0.02em;margin-bottom:8px}
+.memo-complete-sub{font-size:14px;color:var(--text2);margin-bottom:24px;line-height:1.5}
+.memo-complete-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
+.filter-tabs::-webkit-scrollbar{display:none}
+.filter-tab{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:var(--font-body);-webkit-tap-highlight-color:transparent}
+.filter-tab.active{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+.filter-tab:active{transform:scale(0.96)}
+
+/* Empty */
+.empty-state{text-align:center;padding:48px 20px;color:var(--text3);font-size:13px}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-title{font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--text2);margin-bottom:6px}
+
+/* Config */
+.config-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px}
+.config-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:block}
+.config-input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text);font-size:14px;font-family:var(--font-body);outline:none;transition:border-color 0.15s;margin-bottom:6px}
+.config-input:focus{border-color:#4d9fff}
+.config-note{font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5}
+
+/* Info box */
+.info-box{background:rgba(77,159,255,0.07);border:1px solid rgba(77,159,255,0.2);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px}
+.info-box-purple{background:rgba(168,85,247,0.07);border:1px solid rgba(168,85,247,0.2);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px}
+
+/* Toast */
+.toast{position:fixed;bottom:calc(var(--safe-bottom) + 90px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:30px;font-size:13px;font-weight:500;opacity:0;transition:all 0.3s;z-index:200;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Section title */
+.section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:3px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen active">
+    <div class="app-header">
+      <div class="logo"><div class="logo-mark">🎓</div>ICFES Quiz</div>
+      <div class="logo-sub">Plataforma colaborativa de estudio</div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-pill"><div class="stat-val" id="stat-total" style="color:#4d9fff">—</div><div class="stat-label">Preguntas</div></div>
+      <div class="stat-pill"><div class="stat-val" style="color:#00d4aa">5</div><div class="stat-label">Componentes</div></div>
+      <div class="stat-pill"><div class="stat-val" id="stat-today" style="color:#a855f7">—</div><div class="stat-label">Hoy</div></div>
+    </div>
+    <div class="components-grid" id="comp-grid"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-ghost" style="flex:1" onclick="showScreen('upload')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Agregar preguntas
+      </button>
+      <button class="btn btn-ghost" onclick="showScreen('config')" title="Configuración">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93A10 10 0 0 0 19.07 19.07"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="screen-upload" class="screen">
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="showScreen('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
+      <span class="nav-title">Agregar preguntas</span>
+    </div>
+    <div class="info-box">
+      💡 La imagen se comprime y guarda en Firestore. <strong>No se usa Firebase Storage</strong>, así no necesitas cuenta de facturación.
+    </div>
+    <div style="margin-bottom:16px">
+      <div class="config-label">1. Elige el componente ICFES</div>
+      <div class="comp-selector" id="comp-selector"></div>
+    </div>
+    <div class="config-label">2. Sube las fotos</div>
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <input type="file" id="file-input" accept="image/*" multiple/>
+      <div class="upload-icon">📷</div>
+      <div class="upload-title">Toca para abrir tu galería</div>
+      <div class="upload-sub">La IA extrae la pregunta y opciones automáticamente.<br>La imagen se comprime antes de guardar.</div>
+      <button class="btn btn-primary" onclick="event.stopPropagation();document.getElementById('file-input').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Seleccionar fotos
+      </button>
+    </div>
+    <div id="preview-section" style="display:none">
+      <div class="preview-header" style="margin-top:16px">
+        <span class="preview-label" id="preview-count">0 fotos</span>
+        <button class="btn btn-primary" onclick="analyzeImages()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          Analizar con IA
+        </button>
+      </div>
+      <div class="preview-grid" id="preview-grid"></div>
+    </div>
+    <div id="loading-section" style="display:none">
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <div class="loading-title" id="loading-msg">Analizando imágenes...</div>
+        <div class="loading-sub">Comprimiendo y guardando en Firestore</div>
+        <div class="loading-prog"><span id="lprog-text">0 / 0</span><span id="lprog-pct">0%</span></div>
+        <div class="loading-bar"><div class="loading-bar-fill" id="lbar-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPONENT — MODE SELECTOR -->
+  <div id="screen-comp" class="screen">
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="showScreen('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
+      <span class="nav-title" id="comp-screen-title">Componente</span>
+    </div>
+
+    <!-- Elige modo -->
+    <div class="section-title">Elige un modo de estudio</div>
+    <div class="mode-selector">
+      <div class="mode-card learn" onclick="openLearnMode()">
+        <div class="mode-card-icon">🧠</div>
+        <div class="mode-card-name" style="color:var(--mode-learn)">Aprendizaje</div>
+        <div class="mode-card-desc">Preguntas con opciones y retroalimentación inmediata</div>
+      </div>
+      <div class="mode-card memo" onclick="openMemoMode()">
+        <div class="mode-card-icon">🔁</div>
+        <div class="mode-card-name" style="color:var(--mode-memo)">Memorización</div>
+        <div class="mode-card-desc">Tarjetas con repetición espaciada para fijar conceptos</div>
+      </div>
+    </div>
+
+    <!-- Lista de preguntas -->
+    <div class="section-title" style="margin-top:4px">Preguntas del componente</div>
+    <div class="filter-tabs" id="comp-filter-tabs">
+      <button class="filter-tab active" onclick="filterCompList('all',this)">Todas</button>
+      <button class="filter-tab" onclick="filterCompList('memo',this)">🔁 Para memorizar</button>
+    </div>
+    <div id="comp-question-list"></div>
+  </div>
+
+  <!-- QUIZ — APRENDIZAJE GENERAL -->
+  <div id="screen-quiz" class="screen">
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="confirmExitQuiz()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <span class="nav-title" id="quiz-counter">Pregunta 1 de 1</span>
+      <span class="badge" id="quiz-comp-badge" style="flex-shrink:0;font-size:9px">—</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="quiz-progress" style="width:0%"></div></div>
+    <div id="quiz-content"></div>
+    <div class="quiz-nav">
+      <button class="btn btn-ghost" id="btn-skip" onclick="skipQuestion()">Omitir <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextQuestion()" style="display:none;margin-left:auto">Siguiente <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+    </div>
+  </div>
+
+  <!-- MEMO — MEMORIZACIÓN FLASHCARD -->
+  <div id="screen-memo" class="screen">
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="confirmExitMemo()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <span class="nav-title" id="memo-counter">Tarjeta 1 de 1</span>
+      <span class="badge badge-memo" id="memo-comp-badge" style="flex-shrink:0;font-size:9px">🔁 Memo</span>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill memo-fill" id="memo-progress" style="width:0%"></div></div>
+
+    <div class="memo-stats-row">
+      <div class="memo-stat"><div class="memo-stat-val" id="ms-again" style="color:var(--red)">0</div><div class="memo-stat-label">Repetir</div></div>
+      <div class="memo-stat"><div class="memo-stat-val" id="ms-hard" style="color:var(--orange)">0</div><div class="memo-stat-label">Difícil</div></div>
+      <div class="memo-stat"><div class="memo-stat-val" id="ms-easy" style="color:var(--green)">0</div><div class="memo-stat-label">Fácil</div></div>
+    </div>
+
+    <div id="memo-content"></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="screen-results" class="screen">
+    <div class="nav-row"><span class="nav-title">Resultados 🎓</span></div>
+    <div class="results-grid">
+      <div class="res-card"><div class="res-val" id="res-correct" style="color:var(--green)">0</div><div class="res-label">Correctas</div></div>
+      <div class="res-card"><div class="res-val" id="res-wrong" style="color:var(--red)">0</div><div class="res-label">Incorrectas</div></div>
+      <div class="res-card"><div class="res-val" id="res-score" style="color:#4d9fff">0%</div><div class="res-label">Puntuación</div></div>
+    </div>
+    <div id="results-detail"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="restartQuiz()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.37"/></svg>Repetir</button>
+      <button class="btn" onclick="showScreen('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Inicio</button>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div id="screen-config" class="screen">
+    <div class="nav-row">
+      <button class="btn btn-ghost" onclick="showScreen('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
+      <span class="nav-title">Configuración</span>
+    </div>
+    <div class="config-box">
+      <span class="config-label">API Key de Anthropic (analiza las imágenes)</span>
+      <input type="password" class="config-input" id="cfg-anthropic" placeholder="sk-ant-api03-..."/>
+      <div class="config-note">Solo se guarda en este dispositivo. Obtén la tuya en <strong>console.anthropic.com</strong></div>
+    </div>
+    <div class="config-box">
+      <span class="config-label">Firebase — Solo Firestore (sin Storage, sin facturación)</span>
+      <input type="text" class="config-input" id="cfg-fb-apikey" placeholder="apiKey"/>
+      <input type="text" class="config-input" id="cfg-fb-projectid" placeholder="projectId"/>
+      <input type="text" class="config-input" id="cfg-fb-appid" placeholder="appId"/>
+      <div class="config-note">⚠️ Después de guardar, recarga la página para que Firebase se conecte.</div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveConfig()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Guardar configuración
+    </button>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+const COMPONENTS = [
+  {id:'lc',  name:'Lectura Crítica',      emoji:'📖', color:'#00d4aa', bg:'rgba(0,212,170,0.15)'},
+  {id:'mat', name:'Matemáticas',           emoji:'📐', color:'#4d9fff', bg:'rgba(77,159,255,0.15)'},
+  {id:'soc', name:'Sociales y Ciudadanas', emoji:'🌍', color:'#ff7b54', bg:'rgba(255,123,84,0.15)'},
+  {id:'cn',  name:'Ciencias Naturales',    emoji:'🔬', color:'#a855f7', bg:'rgba(168,85,247,0.15)'},
+  {id:'ing', name:'Inglés',                emoji:'🇺🇸', color:'#f59e0b', bg:'rgba(245,158,11,0.15)'},
+];
+
+let pendingImages = [];
+let selectedComp = 'lc';
+let currentCompId = null;
+let compQuestions = {};
+let quizState = {questions:[],current:0,answers:[],correct:0,wrong:0,compId:null};
+let lastQuizQuestions = [];
+
+// ── MEMO STATE ──
+let memoState = {
+  questions: [],    // all cards in this session
+  queue: [],        // pending cards
+  again: 0,
+  hard: 0,
+  easy: 0,
+  compId: null,
+  cardFlipped: false,
+  currentCard: null,
+};
+
+// ── CONFIG ──
+function getConfig(){try{return JSON.parse(localStorage.getItem('icfes_cfg')||'{}')}catch{return{}}}
+function saveConfig(){
+  const cfg={
+    anthropicKey:document.getElementById('cfg-anthropic').value.trim(),
+    fbApiKey:document.getElementById('cfg-fb-apikey').value.trim(),
+    fbProjectId:document.getElementById('cfg-fb-projectid').value.trim(),
+    fbAppId:document.getElementById('cfg-fb-appid').value.trim(),
+  };
+  localStorage.setItem('icfes_cfg',JSON.stringify(cfg));
+  showToast('✓ Guardado — recarga la página para aplicar Firebase');
+}
+function loadConfigUI(){
+  const c=getConfig();
+  document.getElementById('cfg-anthropic').value=c.anthropicKey||'';
+  document.getElementById('cfg-fb-apikey').value=c.fbApiKey||'';
+  document.getElementById('cfg-fb-projectid').value=c.fbProjectId||'';
+  document.getElementById('cfg-fb-appid').value=c.fbAppId||'';
+}
+
+// ── IMAGE COMPRESSION ──
+function compressImage(dataUrl, maxW=800, quality=0.65){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const scale=Math.min(1, maxW/img.width);
+      const w=Math.round(img.width*scale);
+      const h=Math.round(img.height*scale);
+      const c=document.createElement('canvas');
+      c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.src=dataUrl;
+  });
+}
+
+// ── FIREBASE ──
+async function fbSave(q){
+  if(!window._firebaseReady){showToast('⚠️ Firebase no configurado');return false}
+  try{
+    const {collection,addDoc,serverTimestamp}=window._fbModules;
+    await addDoc(collection(window._db,'questions'),{...q,createdAt:serverTimestamp()});
+    return true;
+  }catch(e){console.error(e);showToast('Error Firebase: '+e.message);return false}
+}
+
+async function fbLoad(compId){
+  if(!window._firebaseReady)return[];
+  try{
+    const {collection,getDocs,query,orderBy,where}=window._fbModules;
+    const q=query(collection(window._db,'questions'),where('compId','==',compId),orderBy('createdAt','desc'));
+    const snap=await getDocs(q);
+    return snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){console.error(e);return[]}
+}
+
+async function fbCounts(){
+  if(!window._firebaseReady)return{};
+  try{
+    const {collection,getDocs}=window._fbModules;
+    const snap=await getDocs(collection(window._db,'questions'));
+    const c={};
+    snap.docs.forEach(d=>{const id=d.data().compId;c[id]=(c[id]||0)+1});
+    return c;
+  }catch{return{}}
+}
+
+// ── SCREENS ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='home')loadHome();
+  if(id==='config')loadConfigUI();
+}
+
+// ── HOME ──
+async function loadHome(){
+  const counts=await fbCounts();
+  let total=0; Object.values(counts).forEach(v=>total+=v);
+  document.getElementById('stat-total').textContent=total||'0';
+  const today=new Date().toDateString();
+  document.getElementById('stat-today').textContent=localStorage.getItem('icfes_today_'+today)||'0';
+  document.getElementById('comp-grid').innerHTML=COMPONENTS.map(c=>`
+    <div class="comp-card" onclick="openComp('${c.id}')">
+      <div class="comp-icon" style="background:${c.bg}">${c.emoji}</div>
+      <div class="comp-info" style="flex:1">
+        <div class="comp-name" style="color:${c.color}">${c.name}</div>
+        <div class="comp-meta">${counts[c.id]||0} preguntas</div>
+      </div>
+      <div class="comp-count" style="color:${c.color}">${counts[c.id]||0}</div>
+      <span style="color:var(--text3);font-size:20px">›</span>
+    </div>`).join('');
+}
+
+// ── COMPONENT ──
+async function openComp(compId){
+  currentCompId=compId;
+  const comp=COMPONENTS.find(c=>c.id===compId);
+  document.getElementById('comp-screen-title').textContent=comp.emoji+' '+comp.name;
+  showScreen('comp');
+  document.getElementById('comp-question-list').innerHTML=
+    '<div class="loading-card"><div class="spinner"></div><div class="loading-title">Cargando...</div></div>';
+  compQuestions[compId]=await fbLoad(compId);
+  filterCompList('all', document.querySelector('#comp-filter-tabs .filter-tab'));
+}
+
+let currentFilter = 'all';
+
+function filterCompList(filter, el){
+  currentFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderCompList(currentCompId, filter);
+}
+
+function renderCompList(compId, filter='all'){
+  const comp=COMPONENTS.find(c=>c.id===compId);
+  const allQs=compQuestions[compId]||[];
+  // filter: 'memo' = preguntas marcadas para memorización (correctIndex >= 0)
+  const qs = filter==='memo'
+    ? allQs.filter(q=>q.correctIndex>=0 && q.explanation)
+    : allQs;
+  const el=document.getElementById('comp-question-list');
+  if(!allQs.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">${comp.emoji}</div>
+      <div class="empty-title">Sin preguntas aún</div>
+      <p>Sube fotos para agregar preguntas.</p>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="showScreen('upload')">Agregar preguntas</button>
+    </div>`;return;
+  }
+  if(!qs.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔁</div>
+      <div class="empty-title">Sin preguntas para memorizar</div>
+      <p>Las preguntas con respuesta correcta e<br>explicación aparecen aquí.</p>
+    </div>`;return;
+  }
+  el.innerHTML=qs.map((q,i)=>`
+    <div class="q-list-item" onclick="startStudyFrom(${allQs.indexOf(q)},'${compId}')">
+      ${q.imageData?`<img class="q-thumb" src="${q.imageData}" alt="" onerror="this.style.display='none'"/>`:'<div class="q-thumb"></div>'}
+      <div class="q-info">
+        <div class="q-text">${q.question}</div>
+        <div class="q-meta">${(q.options||[]).length} opciones · ${fmtDate(q.createdAt)}${q.correctIndex>=0?' · <span style="color:var(--mode-memo);font-weight:600">🔁 Memo</span>':''}</div>
+      </div>
+      <span style="color:var(--text3);font-size:18px">›</span>
+    </div>`).join('');
+}
+
+function fmtDate(ts){
+  if(!ts)return'';
+  try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('es-CO',{day:'numeric',month:'short'})}catch{return''}
+}
+
+// ── OPEN MODES ──
+function openLearnMode(){
+  const qs=compQuestions[currentCompId]||[];
+  if(!qs.length){showToast('No hay preguntas en este componente');return}
+  beginQuiz([...qs].sort(()=>Math.random()-0.5),currentCompId);
+}
+
+function openMemoMode(){
+  const allQs=compQuestions[currentCompId]||[];
+  // Memorization: questions that have a defined correct answer
+  const memoQs=allQs.filter(q=>q.correctIndex>=0);
+  if(!memoQs.length){
+    showToast('No hay preguntas con respuesta definida para memorizar');
+    return;
+  }
+  beginMemo([...memoQs].sort(()=>Math.random()-0.5), currentCompId);
+}
+
+function startStudyFrom(idx, compId){
+  const qs=compQuestions[compId]||[];
+  beginQuiz([...qs.slice(idx),...qs.slice(0,idx)],compId);
+}
+
+// ══════════════════════════════════════════════
+// ── MODO APRENDIZAJE ──
+// ══════════════════════════════════════════════
+function beginQuiz(questions,compId){
+  lastQuizQuestions=questions;
+  quizState={questions,current:0,answers:[],correct:0,wrong:0,compId};
+  renderQuestion();
+  showScreen('quiz');
+}
+
+function renderQuestion(){
+  const q=quizState.questions[quizState.current];
+  const total=quizState.questions.length;
+  const idx=quizState.current;
+  const comp=COMPONENTS.find(c=>c.id===quizState.compId);
+
+  document.getElementById('quiz-counter').textContent=`Pregunta ${idx+1} de ${total}`;
+  document.getElementById('quiz-progress').style.width=((idx/total)*100)+'%';
+  const badge=document.getElementById('quiz-comp-badge');
+  badge.textContent=comp?comp.emoji+' '+comp.name:'';
+  if(comp){badge.style.background=comp.bg;badge.style.color=comp.color;badge.style.border=`1px solid ${comp.color}33`}
+
+  document.getElementById('btn-skip').style.display='inline-flex';
+  document.getElementById('btn-next').style.display='none';
+
+  const L=['A','B','C','D','E','F'];
+  const opts=(q.options||[]).map((o,i)=>`
+    <button class="option-btn" onclick="selectOption(${i})" id="opt-${i}">
+      <span class="option-letter">${L[i]||i+1}</span>
+      <span style="flex:1">${o.text||o}</span>
+    </button>`).join('');
+
+  document.getElementById('quiz-content').innerHTML=`
+    <div class="question-card">
+      <div class="question-num" style="color:${comp?comp.color:'#4d9fff'}">🧠 Aprendizaje · Pregunta ${idx+1}</div>
+      ${q.imageData?`<img class="question-img" src="${q.imageData}" alt="Pregunta" onerror="this.style.display='none'"/>`:''}
+      <div class="question-text">${q.question}</div>
+      <div class="options-grid">${opts}</div>
+      <div class="feedback-box" id="feedback"></div>
+    </div>`;
+}
+
+function selectOption(ci){
+  const q=quizState.questions[quizState.current];
+  const ri=q.correctIndex;
+  document.querySelectorAll('.option-btn').forEach(b=>b.disabled=true);
+  const isOk=ci===ri;
+  document.getElementById('opt-'+ci).classList.add(isOk?'correct':'wrong');
+  if(!isOk&&ri>=0){const rb=document.getElementById('opt-'+ri);if(rb)rb.classList.add('reveal')}
+  const fb=document.getElementById('feedback');
+  const L=['A','B','C','D','E','F'];
+  if(isOk){
+    quizState.correct++;
+    fb.className='feedback-box show correct';
+    fb.innerHTML='✓ ¡Correcto! '+(q.explanation||'');
+  }else{
+    quizState.wrong++;
+    fb.className='feedback-box show wrong';
+    fb.innerHTML=`✕ Incorrecto. La respuesta correcta es <strong>${ri>=0?L[ri]:'?'}</strong>. ${q.explanation||''}`;
+  }
+  quizState.answers.push({questionIdx:quizState.current,chosen:ci,correct:isOk});
+  document.getElementById('btn-skip').style.display='none';
+  document.getElementById('btn-next').style.display='inline-flex';
+}
+
+function skipQuestion(){
+  quizState.answers.push({questionIdx:quizState.current,chosen:-1,correct:false});
+  nextQuestion();
+}
+
+function nextQuestion(){
+  quizState.current++;
+  if(quizState.current>=quizState.questions.length)showResults();
+  else renderQuestion();
+}
+
+function restartQuiz(){beginQuiz([...lastQuizQuestions].sort(()=>Math.random()-0.5),quizState.compId)}
+
+function confirmExitQuiz(){
+  if(quizState.answers.length>0&&!confirm('¿Salir? Perderás el progreso.'))return;
+  showScreen('comp');
+}
+
+function showResults(){
+  const {correct,wrong,questions,answers}=quizState;
+  const total=questions.length;
+  document.getElementById('res-correct').textContent=correct;
+  document.getElementById('res-wrong').textContent=wrong+(total-correct-wrong);
+  document.getElementById('res-score').textContent=Math.round((correct/total)*100)+'%';
+  const L=['A','B','C','D','E','F'];
+  document.getElementById('results-detail').innerHTML=answers.map(a=>{
+    const q=questions[a.questionIdx];
+    const ok=a.correct,skip=a.chosen===-1;
+    const color=ok?'var(--green)':'var(--red)';
+    const label=ok?'Correcta ✓':(skip?'Omitida':'Incorrecta ✕');
+    const detail=!ok&&!skip&&q.correctIndex>=0
+      ?`<div class="result-detail">Correcta: <strong>${L[q.correctIndex]}</strong> — ${(q.options[q.correctIndex]?.text||'')}</div>`:'';
+    return`<div class="result-item"><div class="result-row">
+      <div class="result-dot" style="background:${color}"></div>
+      <div style="flex:1;font-size:13px;color:var(--text);line-height:1.4">${q.question}</div>
+      <span style="font-size:11px;font-weight:600;color:${color};flex-shrink:0;margin-left:8px">${label}</span>
+    </div>${detail}</div>`;
+  }).join('');
+  showScreen('results');
+}
+
+// ══════════════════════════════════════════════
+// ── MODO MEMORIZACIÓN (Flashcards) ──
+// ══════════════════════════════════════════════
+function beginMemo(questions, compId){
+  memoState = {
+    questions,
+    queue: [...questions],
+    again: 0,
+    hard: 0,
+    easy: 0,
+    compId,
+    cardFlipped: false,
+    currentCard: null,
+  };
+  showScreen('memo');
+  advanceMemo();
+}
+
+function advanceMemo(){
+  if(!memoState.queue.length){
+    renderMemoComplete();
+    return;
+  }
+  memoState.currentCard = memoState.queue.shift();
+  memoState.cardFlipped = false;
+  renderMemoCard();
+  updateMemoStats();
+}
+
+function renderMemoCard(){
+  const q = memoState.currentCard;
+  const comp = COMPONENTS.find(c=>c.id===memoState.compId);
+  const total = memoState.questions.length;
+  const done = total - memoState.queue.length - 1;
+  const progress = total > 0 ? (done / total) * 100 : 0;
+
+  document.getElementById('memo-counter').textContent =
+    `Tarjeta ${done+1} de ${total}`;
+  document.getElementById('memo-progress').style.width = progress+'%';
+  const badge = document.getElementById('memo-comp-badge');
+  if(comp){badge.textContent=comp.emoji+' Memo'}
+
+  const L = ['A','B','C','D','E','F'];
+  const correctOpt = q.options && q.correctIndex>=0 ? (q.options[q.correctIndex]?.text||'') : '—';
+  const correctLetter = q.correctIndex>=0 ? L[q.correctIndex] : '?';
+
+  document.getElementById('memo-content').innerHTML=`
+    <div class="flashcard-wrap" onclick="flipCard()" id="flashcard-wrap">
+      <div class="flashcard" id="the-flashcard">
+        <div class="card-face card-front">
+          <div class="card-hint">Pregunta — toca para ver respuesta</div>
+          ${q.imageData?`<img class="card-img-small" src="${q.imageData}" alt="" onerror="this.style.display='none'"/>`:''}
+          <div class="card-question-text">${q.question}</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-answer-label">🔑 Respuesta correcta</div>
+          <div class="card-answer-text">${correctLetter}. ${correctOpt}</div>
+          ${q.explanation?`<div class="card-explanation">${q.explanation}</div>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="flip-hint" id="flip-hint">
+      <span class="flip-icon">👆</span> Toca la tarjeta para ver la respuesta
+    </div>
+    <div class="memo-actions memo-actions-hidden" id="memo-actions">
+      <button class="memo-btn memo-btn-again" onclick="rateMemo('again')">
+        <span>😓</span>De nuevo
+      </button>
+      <button class="memo-btn memo-btn-hard" onclick="rateMemo('hard')">
+        <span>🤔</span>Difícil
+      </button>
+      <button class="memo-btn memo-btn-easy" onclick="rateMemo('easy')">
+        <span>✅</span>Fácil
+      </button>
+    </div>`;
+}
+
+function flipCard(){
+  if(memoState.cardFlipped) return;
+  memoState.cardFlipped = true;
+  const fc = document.getElementById('the-flashcard');
+  if(fc) fc.classList.add('flipped');
+  const hint = document.getElementById('flip-hint');
+  if(hint) hint.style.display='none';
+  const actions = document.getElementById('memo-actions');
+  if(actions) actions.classList.remove('memo-actions-hidden');
+}
+
+function rateMemo(rating){
+  if(!memoState.cardFlipped) return;
+  if(rating==='again'){
+    memoState.again++;
+    // Re-insert 3 cards later
+    const insertAt = Math.min(3, memoState.queue.length);
+    memoState.queue.splice(insertAt, 0, memoState.currentCard);
+  } else if(rating==='hard'){
+    memoState.hard++;
+    // Re-insert at end
+    memoState.queue.push(memoState.currentCard);
+  } else {
+    memoState.easy++;
+  }
+  updateMemoStats();
+  // short delay for feedback feel
+  setTimeout(advanceMemo, 200);
+}
+
+function updateMemoStats(){
+  document.getElementById('ms-again').textContent = memoState.again;
+  document.getElementById('ms-hard').textContent = memoState.hard;
+  document.getElementById('ms-easy').textContent = memoState.easy;
+}
+
+function renderMemoComplete(){
+  const total = memoState.questions.length;
+  document.getElementById('memo-progress').style.width = '100%';
+  document.getElementById('memo-content').innerHTML = `
+    <div class="memo-complete">
+      <div class="memo-complete-icon">🎉</div>
+      <div class="memo-complete-title">¡Sesión completa!</div>
+      <div class="memo-complete-sub">Repasaste ${total} tarjeta${total!==1?'s':''} en modo memorización.</div>
+      <div class="memo-complete-stats">
+        <div class="res-card"><div class="res-val" style="color:var(--green)">${memoState.easy}</div><div class="res-label">Fáciles</div></div>
+        <div class="res-card"><div class="res-val" style="color:var(--orange)">${memoState.hard}</div><div class="res-label">Difíciles</div></div>
+        <div class="res-card"><div class="res-val" style="color:var(--red)">${memoState.again}</div><div class="res-label">Repetidas</div></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-memo" onclick="beginMemo([...memoState.questions].sort(()=>Math.random()-0.5),memoState.compId)">
+          🔁 Repetir sesión
+        </button>
+        <button class="btn btn-ghost" onclick="showScreen('comp')">Volver</button>
+      </div>
+    </div>`;
+}
+
+function confirmExitMemo(){
+  if((memoState.easy+memoState.hard+memoState.again)>0 && !confirm('¿Salir de la sesión de memorización?'))return;
+  showScreen('comp');
+}
+
+// ── UPLOAD ──
+function renderCompSelector(){
+  document.getElementById('comp-selector').innerHTML=COMPONENTS.map(c=>`
+    <button class="comp-sel-btn ${c.id===selectedComp?'selected':''}"
+      style="${c.id===selectedComp?`background:${c.bg};border-color:${c.color};color:${c.color}`:''}"
+      onclick="selectComp('${c.id}',this)">${c.emoji} ${c.name}</button>`).join('');
+}
+
+function selectComp(id,el){
+  selectedComp=id;
+  const comp=COMPONENTS.find(c=>c.id===id);
+  document.querySelectorAll('.comp-sel-btn').forEach(b=>{b.classList.remove('selected');b.style.cssText='';});
+  el.classList.add('selected');
+  el.style.background=comp.bg; el.style.borderColor=comp.color; el.style.color=comp.color;
+}
+
+const fileInput=document.getElementById('file-input');
+const dropZone=document.getElementById('drop-zone');
+fileInput.addEventListener('change',e=>handleFiles(e.target.files));
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag');handleFiles(e.dataTransfer.files)});
+
+function handleFiles(files){
+  Array.from(files).filter(f=>f.type.startsWith('image/')).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{pendingImages.push({file:f,dataUrl:e.target.result});renderPreviews()};
+    r.readAsDataURL(f);
+  });
+}
+
+function renderPreviews(){
+  document.getElementById('preview-section').style.display='block';
+  document.getElementById('preview-count').textContent=pendingImages.length+' foto'+(pendingImages.length!==1?'s':'');
+  document.getElementById('preview-grid').innerHTML=pendingImages.map((img,i)=>`
+    <div class="preview-item">
+      <img src="${img.dataUrl}" alt=""/>
+      <button class="preview-remove" onclick="removeImage(${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeImage(idx){
+  pendingImages.splice(idx,1);
+  if(!pendingImages.length)document.getElementById('preview-section').style.display='none';
+  else renderPreviews();
+}
+
+async function analyzeImages(){
+  if(!pendingImages.length){showToast('Selecciona al menos una foto');return}
+  const cfg=getConfig();
+  if(!cfg.anthropicKey){showToast('⚠️ Falta API Key de Anthropic');showScreen('config');return}
+  if(!window._firebaseReady){showToast('⚠️ Firebase no configurado');showScreen('config');return}
+
+  document.getElementById('preview-section').style.display='none';
+  document.getElementById('loading-section').style.display='block';
+
+  const total=pendingImages.length;
+  let processed=0,saved=0;
+  const upd=()=>{
+    const pct=Math.round((processed/total)*100);
+    document.getElementById('lprog-text').textContent=processed+' / '+total;
+    document.getElementById('lprog-pct').textContent=pct+'%';
+    document.getElementById('lbar-fill').style.width=pct+'%';
+  };
+
+  const msgs=['Analizando imágenes...','Extrayendo preguntas...','Comprimiendo imágenes...','Guardando en Firestore...'];
+  let mi=0;
+  const iv=setInterval(()=>{mi=(mi+1)%msgs.length;document.getElementById('loading-msg').textContent=msgs[mi]},1800);
+
+  for(const imgData of pendingImages){
+    try{
+      const compressed=await compressImage(imgData.dataUrl, 800, 0.65);
+      const base64=imgData.dataUrl.split(',')[1];
+      const mtype=imgData.file.type;
+
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':cfg.anthropicKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body:JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:1000,
+          system:`Extractor de preguntas ICFES. Responde SOLO JSON válido sin texto extra ni markdown:
+{"hasQuestion":true,"question":"texto completo","options":[{"letter":"A","text":"..."},{"letter":"B","text":"..."},{"letter":"C","text":"..."},{"letter":"D","text":"..."}],"correctIndex":0,"explanation":"por qué es correcta"}
+Si no hay pregunta con opciones: {"hasQuestion":false}
+correctIndex: índice 0-based. Si no determinable: -1. Incluye contextos y textos auxiliares en la pregunta.`,
+          messages:[{role:'user',content:[
+            {type:'image',source:{type:'base64',media_type:mtype,data:base64}},
+            {type:'text',text:'Extrae la pregunta y opciones de esta imagen ICFES.'}
+          ]}]
+        })
+      });
+
+      const data=await res.json();
+      const raw=(data.content||[]).map(c=>c.text||'').join('');
+      const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+
+      if(parsed.hasQuestion){
+        const ok=await fbSave({
+          compId:selectedComp,
+          question:parsed.question,
+          options:parsed.options,
+          correctIndex:parsed.correctIndex,
+          explanation:parsed.explanation||'',
+          imageData:compressed,
+        });
+        if(ok){
+          saved++;
+          const k='icfes_today_'+new Date().toDateString();
+          localStorage.setItem(k,String(parseInt(localStorage.getItem(k)||'0')+1));
+        }
+      }
+    }catch(e){console.error(e);showToast('Error en imagen: '+e.message)}
+    processed++;upd();
+  }
+
+  clearInterval(iv);
+  document.getElementById('loading-section').style.display='none';
+  pendingImages=[];fileInput.value='';
+  showToast('✓ '+saved+' pregunta'+(saved!==1?'s':'')+' guardada'+(saved!==1?'s':'')+' en Firestore');
+  showScreen('home');
+}
+
+// ── TOAST ──
+let _tt;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ── INIT ──
+document.addEventListener('firebase-ready',()=>{console.log('Firebase ✓');loadHome()});
+renderCompSelector();
+loadHome();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
